@@ -1,6 +1,7 @@
 {
   "name": "rhythmic-dishwashing-app",
-  "version": "0.0.0",
+  "repository": "luudjanssen/rhythmic-dishwashing-server",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
