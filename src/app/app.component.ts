@@ -62,11 +62,11 @@ export class AppComponent {
     const noot = new Audio("assets/sounds/noot.mp4");
 
     const connectionSound = new Map([
-      [3, noot],
+      [2, noot],
       [4, bass],
-      [5, clap],
-      [6, brass],
-      [7, synth]
+      [7, clap],
+      [8, brass],
+      [12, synth]
     ]);
 
     this.communicationService.getMessage().subscribe(msg => {
