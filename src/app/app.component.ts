@@ -1,6 +1,75 @@
 import { Component } from "@angular/core";
 import { CommunicationService } from "./communication.service";
 
+interface PinSounds {
+  pin: number;
+  sound: string;
+  variants: number[];
+  loaded?: HTMLAudioElement[];
+  rhythm: number[];
+  rhythmIndex: number;
+}
+
+const pinSoundMappings: PinSounds[] = [
+  {
+    pin: 2,
+    sound: "human",
+    variants: [1, 2, 3, 4],
+    rhythm: [0, 1, 2, 3],
+    rhythmIndex: 0
+  },
+  {
+    pin: 4,
+    sound: "snap",
+    variants: [1],
+    rhythm: [0],
+    rhythmIndex: 0
+  },
+  {
+    pin: 7,
+    sound: "shout",
+    variants: [1, 2, 3, 4],
+    rhythm: [0, 1, 2, 3],
+    rhythmIndex: 0
+  },
+  {
+    pin: 8,
+    sound: "bass",
+    variants: [1, 2, 3, 4],
+    rhythm: [0, 1, 2, 3],
+    rhythmIndex: 0
+  },
+  {
+    pin: 12,
+    sound: "scratch",
+    variants: [1, 2, 3, 4],
+    rhythm: [0, 1, 2, 3],
+    rhythmIndex: 0
+  }
+];
+
+pinSoundMappings.forEach(pinSoundMapping => {
+  const { variants, sound } = pinSoundMapping;
+  pinSoundMapping.loaded = variants.map(variant => {
+    const audio = new Audio(`assets/sounds/${sound}-${variant}.wav`);
+    audio.preload = "auto";
+    return audio;
+  });
+});
+
+const pinSoundMap = new Map();
+
+pinSoundMappings.forEach(pinSoundMappings =>
+  pinSoundMap.set(pinSoundMappings.pin, pinSoundMappings)
+);
+
+const music = new Audio("assets/sounds/music.wav");
+music.loop = true;
+music.volume = 0.6;
+music.preload = "auto";
+
+let beat = 0;
+
 @Component({
   selector: "app-root",
   template: `
@@ -51,24 +120,11 @@ import { CommunicationService } from "./communication.service";
 export class AppComponent {
   msg: string;
   title = "rhythmic-dishwashing-app";
+  beatInterval: any;
 
   constructor(private communicationService: CommunicationService) {}
 
   ngOnInit() {
-    const bass = new Audio("assets/sounds/bass.wav");
-    const clap = new Audio("assets/sounds/clap.wav");
-    const brass = new Audio("assets/sounds/brass.wav");
-    const synth = new Audio("assets/sounds/synth.wav");
-    const noot = new Audio("assets/sounds/noot.mp4");
-
-    const connectionSound = new Map([
-      [2, noot],
-      [4, bass],
-      [7, clap],
-      [8, brass],
-      [12, synth]
-    ]);
-
     this.communicationService.getMessage().subscribe(msg => {
       console.log(msg);
       this.msg = "1st " + msg;
@@ -76,7 +132,29 @@ export class AppComponent {
 
     this.communicationService.connectionState().subscribe(state => {
       console.log("connection", state);
-      this.playSound(connectionSound.get(state.pin));
+
+      const pinSoundMapping = pinSoundMap.get(state.pin);
+      const variantToPlay = pinSoundMapping.rhythm[pinSoundMapping.rhythmIndex];
+
+      console.log(pinSoundMapping.loaded[variantToPlay]);
+
+      this.playSound(pinSoundMapping.loaded[variantToPlay]);
+
+      if (pinSoundMapping.rhythmIndex === pinSoundMapping.rhythm.length - 1) {
+        pinSoundMapping.rhythmIndex = 0;
+      } else {
+        pinSoundMapping.rhythmIndex++;
+      }
+    });
+
+    this.communicationService.startState().subscribe(({ start }) => {
+      console.log("start", start);
+
+      if (start && music.currentTime === 0) {
+        this.playSound(music);
+        this.watchBeats(music);
+        this.startTimer();
+      }
     });
   }
 
@@ -86,7 +164,39 @@ export class AppComponent {
     sound.play();
   }
 
+  watchBeats(sound: HTMLAudioElement) {
+    let previousIndex = 0;
+
+    sound.addEventListener("timeupdate", () => {
+      const time = sound.currentTime;
+
+      if (time < previousIndex) {
+        this.startTimer();
+      }
+
+      previousIndex = time;
+    });
+  }
+
+  startTimer() {
+    console.log("(re)started timer");
+    beat = 0;
+    clearInterval(this.beatInterval);
+    this.sendBeat();
+    this.beatInterval = setInterval(() => this.sendBeat(), 500);
+  }
+
   sendMsg(msg) {
     this.communicationService.sendMessage(msg);
+  }
+
+  sendBeat() {
+    this.communicationService.sendBeat(beat);
+
+    if (beat === 3) {
+      beat = 0;
+    } else {
+      beat++;
+    }
   }
 }

@@ -22,12 +22,16 @@ export class CommunicationService {
     this.socket.emit("test-backward", data);
   }
 
+  sendBeat(beat: number) {
+    this.socket.emit("beat", beat);
+  }
+
   getMessage() {
     return this.socket.fromEvent("test-forward");
   }
 
-  buttonState() {
-    return this.socket.fromEvent("button-state");
+  startState() {
+    return this.socket.fromEvent("start-state");
   }
 
   connectionState(): Subscribable<IConnectionState> {
